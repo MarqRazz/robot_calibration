@@ -86,7 +86,7 @@ public:
       rclcpp::spin_some(node);
     }
 
-    RCLCPP_WARN(logger, "CameraInfo receive timed out.");
+    RCLCPP_WARN(logger, "CameraInfo receive timed out. name: %s, topic_name: %s", name.c_str(), topic_name.c_str());
     return false;
   }
 

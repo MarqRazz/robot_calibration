@@ -75,6 +75,9 @@ bool CheckerboardFinder::init(const std::string& name,
   // Publish where checkerboard points were seen
   publisher_ = node->create_publisher<sensor_msgs::msg::PointCloud2>(getName() + "_points", 10);
 
+  // Image Publish to debug open_cv
+  image_publisher_ = node->create_publisher<sensor_msgs::msg::Image>(getName() + "_image", 10);
+
   // Setup to get camera depth info
   if (!depth_camera_manager_.init(name, node, LOGGER))
   {
@@ -189,6 +192,8 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
     RCLCPP_ERROR(LOGGER, "Conversion failed");
     return false;
   }
+  
+  image_publisher_->publish(*bridge->toImageMsg());
 
   // Find checkerboard
   std::vector<cv::Point2f> points;
@@ -217,6 +222,17 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
     cloud_mod.resize(points_x_ * points_y_);
     sensor_msgs::PointCloud2Iterator<float> iter_cloud(cloud, "x");
 
+    // Create PointCloud2 of the world points publish (something is wrong here :( and points dont appear in Rviz)
+    sensor_msgs::msg::PointCloud2 cloud_world;
+    cloud_world.width = 0;
+    cloud_world.height = 0;
+    cloud_world.header.stamp = clock_->now();
+    cloud_world.header.frame_id = frame_id_;
+    sensor_msgs::PointCloud2Modifier cloud_mod2(cloud_world);
+    cloud_mod2.setPointCloud2FieldsByString(1, "xyz");
+    cloud_mod2.resize(points_x_ * points_y_);
+    sensor_msgs::PointCloud2Iterator<float> iter_world_cloud(cloud_world, "x");
+
     // Set msg size
     int idx_cam = msg->observations.size() + 0;
     int idx_chain = msg->observations.size() + 1;
@@ -230,6 +246,7 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
     // Fill in the headers
     rgbd.header = cloud_.header;
     world.header.frame_id = frame_id_;
+    // RCLCPP_WARN(LOGGER, "rgbd frame_id: %s, world frame_id: %s", rgbd.header.frame_id.c_str(), world.header.frame_id.c_str());
 
     // Fill in message
     sensor_msgs::PointCloud2ConstIterator<float> xyz(cloud_, "x");
@@ -241,6 +258,7 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
 
       // Get 3d point
       int index = (int)(points[i].y) * cloud_.width + (int)(points[i].x);
+      // RCLCPP_WARN(LOGGER, "points: %f, %f", points[i].x, points[i].y);
       rgbd.point.x = (xyz + index)[X];
       rgbd.point.y = (xyz + index)[Y];
       rgbd.point.z = (xyz + index)[Z];
@@ -263,6 +281,13 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
       iter_cloud[1] = rgbd.point.y;
       iter_cloud[2] = rgbd.point.z;
       ++iter_cloud;
+
+      // Visualize
+      iter_world_cloud[0] = world.point.x;
+      iter_world_cloud[1] = world.point.y;
+      iter_world_cloud[2] = 0.0;
+      // RCLCPP_WARN(LOGGER, "world cloud: %f, %f", iter_world_cloud[0], iter_world_cloud[1]);
+      ++iter_world_cloud;
     }
 
     // Add debug cloud to message
@@ -273,17 +298,13 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
 
     // Publish results
     publisher_->publish(cloud);
+    // publisher_->publish(cloud_world);  // TODO(Marq): this does not work for some reason???
 
     // Found all points
     return true;
   }
 
-  cv::Size observed_size;
-  if(cv::checkChessboard(bridge->image, observed_size))
-    RCLCPP_ERROR(LOGGER, "The checkerboard found does not match the values given in capture.yaml.\n \
-     Found checkerboard with: %d points_x, %d points_y.");
-  else
-    RCLCPP_ERROR(LOGGER, "Could not find the checkerboard!");
+  RCLCPP_ERROR(LOGGER, "Could not find the checkerboard!!!");
   return false;
 }
 

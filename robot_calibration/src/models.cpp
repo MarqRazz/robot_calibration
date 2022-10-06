@@ -90,6 +90,8 @@ std::vector<geometry_msgs::msg::PointStamped> Chain3dModel::project(
     p.p.x(data.observations[sensor_idx].features[i].point.x);
     p.p.y(data.observations[sensor_idx].features[i].point.y);
     p.p.z(data.observations[sensor_idx].features[i].point.z);
+    // std::cout << "observations: " << data.observations[sensor_idx].features[i].point.x << ", " << data.observations[sensor_idx].features[i].point.y << data.observations[sensor_idx].features[i].point.z << std::endl;
+    // std::cout << "frames: " << tip_ << ", " << data.observations[sensor_idx].features[i].header.frame_id << std::endl;
 
     // This is primarily for the case of checkerboards
     //   The observation is in "checkerboard" frame, but the tip of the
@@ -97,9 +99,11 @@ std::vector<geometry_msgs::msg::PointStamped> Chain3dModel::project(
     if (data.observations[sensor_idx].features[i].header.frame_id != tip_)
     {
       KDL::Frame p2(KDL::Frame::Identity());
+      // std::cout << "data.observations: " << data.observations[sensor_idx].features[i].header.frame_id << ", " << tip_ << std::endl;
       if (offsets.getFrame(data.observations[sensor_idx].features[i].header.frame_id, p2))
       {
         // We have to apply the frame offset before the FK projection
+        // std::cout << "P2 projection: " << p2.p.x() << ", " << p2.p.y() << ", " << p2.p.z()<< std::endl;
         p = p2 * p;
       }
     }
@@ -110,6 +114,7 @@ std::vector<geometry_msgs::msg::PointStamped> Chain3dModel::project(
     points[i].point.x = p.p.x();
     points[i].point.y = p.p.y();
     points[i].point.z = p.p.z();
+    // std::cout << "FK projection: " << p.p.x() << ", " << p.p.y() << ", " << p.p.z()<< std::endl;
   }
 
   return points;

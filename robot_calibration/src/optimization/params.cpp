@@ -44,6 +44,7 @@ bool OptimizationParams::LoadFromROS(rclcpp::Node::SharedPtr node,
   free_frames.clear();
   auto free_frame_names = node->declare_parameter<std::vector<std::string>>(
     parameter_ns + ".free_frames", std::vector<std::string>());
+  // RCLCPP_ERROR(logger, "free frames: %i", free_frame_names.size());
   for (auto name : free_frame_names)
   {
     RCLCPP_INFO(logger, "Adding free frame: %s", name.c_str());
@@ -65,9 +66,16 @@ bool OptimizationParams::LoadFromROS(rclcpp::Node::SharedPtr node,
   for (auto name : free_frame_names)
   {
     RCLCPP_INFO(logger, "Adding initial values for: %s", name.c_str());
-    std::string prefix = parameter_ns + "." + name + "_initial_values";
+    std::string prefix = parameter_ns + "." + name;
     FreeFrameInitialValue params;
+
+    std::string s = "_initial_values";
+    std::string::size_type i = name.find(s);
+    if (i != std::string::npos)
+      name.erase(i, s.length());   
+
     params.name = name;
+    // RCLCPP_INFO(logger, "Name: %s", name.c_str());
     params.x = node->declare_parameter<double>(prefix + ".x", 0.0);
     params.y = node->declare_parameter<double>(prefix + ".y", 0.0);
     params.z = node->declare_parameter<double>(prefix + ".z", 0.0);
@@ -75,6 +83,7 @@ bool OptimizationParams::LoadFromROS(rclcpp::Node::SharedPtr node,
     params.pitch = node->declare_parameter<double>(prefix + ".pitch", 0.0);
     params.yaw = node->declare_parameter<double>(prefix + ".yaw", 0.0);
     free_frames_initial_values.push_back(params);
+    // RCLCPP_INFO(logger, "XYZRPY: %f, %f, %f, %f, %f, %f", params.x, params.y, params.z, params.roll, params.pitch, params.yaw);
   }
 
   models.clear();

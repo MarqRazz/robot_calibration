@@ -72,7 +72,7 @@ ChainManager::ChainManager(rclcpp::Node::SharedPtr node, long int wait_time) :
   }
 
   // Parameter to set movement time
-  duration_ = node->declare_parameter<double>("duration", 5.0);
+  duration_ = node->declare_parameter<double>("duration", 1.0);
 
   // Parameter to set velocity scaling factor for move_group
   velocity_factor_ = node->declare_parameter<double>("velocity_factor", 1.0);

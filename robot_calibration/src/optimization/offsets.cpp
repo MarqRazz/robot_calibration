@@ -92,6 +92,7 @@ bool OptimizationOffsets::set(const std::string name, double value)
 {
   for (size_t i = 0; i < num_free_params_; ++i)
   {
+    // std::cout << parameter_names_[i] << " name: " << name << std::endl;
     if (parameter_names_[i] == name)
     {
       parameter_offsets_[i] = value;
@@ -118,6 +119,11 @@ bool OptimizationOffsets::setFrame(
   set(std::string(name).append("_a"), a);
   set(std::string(name).append("_b"), b);
   set(std::string(name).append("_c"), c);
+
+  // std::cout << "setFrame() " <<
+  //                       name << ",,,,, " <<
+  //                       x << "   : " << get(std::string(name).append("_x")) <<std::endl;
+  
 
   return true;
 }
@@ -160,12 +166,15 @@ bool OptimizationOffsets::getFrame(const std::string name, KDL::Frame& offset) c
     }
   }
 
+  // std::cout << "offset?: " << has_offset << ", " << name << ", " << frame_names_[0] << ", " << frame_names_.size() << std::endl;
+
   if (!has_offset)
     return false;
 
   offset.p.x(get(std::string(name).append("_x")));
   offset.p.y(get(std::string(name).append("_y")));
   offset.p.z(get(std::string(name).append("_z")));
+  // std::cout << name << " has offset: " << offset.p.x() << ", " << offset.p.y() << ", " << offset.p.z() << std::endl;
 
   offset.M = rotation_from_axis_magnitude(
                  get(std::string(name).append("_a")),

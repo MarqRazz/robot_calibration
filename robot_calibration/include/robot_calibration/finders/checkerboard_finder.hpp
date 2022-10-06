@@ -52,6 +52,7 @@ private:
 
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subscriber_;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher_;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_;
   rclcpp::Clock::SharedPtr clock_;
 
   bool waiting_;

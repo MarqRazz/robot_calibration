@@ -120,6 +120,8 @@ int Optimizer::optimize(OptimizationParams& params,
                        params.free_frames[i].roll,
                        params.free_frames[i].pitch,
                        params.free_frames[i].yaw);
+    // RCLCPP_ERROR_STREAM(logger, "addFrame() " <<
+    //                       params.free_frames[i].name);
   }
   for (size_t i = 0; i < params.free_frames_initial_values.size(); ++i)
   {
@@ -134,6 +136,9 @@ int Optimizer::optimize(OptimizationParams& params,
       RCLCPP_ERROR_STREAM(logger, "Error setting initial value for " <<
                           params.free_frames_initial_values[i].name);
     }
+    // RCLCPP_ERROR_STREAM(logger, "setFrame() " <<
+    //                     params.free_frames_initial_values[i].name << ",,,,, " <<
+    //                     params.free_frames_initial_values[i].x);
   }
 
   // Allocate space

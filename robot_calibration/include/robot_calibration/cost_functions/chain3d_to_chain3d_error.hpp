@@ -73,8 +73,11 @@ struct Chain3dToChain3d
     // Project the observations into common base frame
     std::vector<geometry_msgs::msg::PointStamped> a_pts =
         a_model_->project(data_, *offsets_);
+    // std::cout << "data_: " << data_.observations[0].sensor_name << ", " << data_.observations[0].features[0].point.x<< ", " << data_.observations[0].features[0].point.y << ", " << data_.observations[0].features[0].point.z << std::endl;
+    // std::cout << "a_pts: " << a_pts[0].header.frame_id << ", " << a_pts[0].point.x << ", " << a_pts[0].point.y << ", " << a_pts[0].point.z << std::endl;
     std::vector<geometry_msgs::msg::PointStamped> b_pts =
         b_model_->project(data_, *offsets_);
+    // std::cout << "b_pts: " << b_pts[0].header.frame_id << ", " << b_pts[0].point.x << ", " << b_pts[0].point.y << ", " << b_pts[0].point.z << std::endl;
 
     if (a_pts.size() != b_pts.size())
     {
@@ -90,6 +93,7 @@ struct Chain3dToChain3d
       residuals[(3*i)+0] = a_pts[i].point.x - b_pts[i].point.x;
       residuals[(3*i)+1] = a_pts[i].point.y - b_pts[i].point.y;
       residuals[(3*i)+2] = a_pts[i].point.z - b_pts[i].point.z;
+      // std::cout << "residuals: " << residuals[(3*i)+0] << ", " << residuals[(3*i)+1] << ", " << residuals[(3*i)+2] << std::endl;
     }
 
     return true;  // always return true
