@@ -208,7 +208,7 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
       estimated_pose_tf = initial_estimate_tf * estimated_pose_tf;
       geometry_msgs::msg::TransformStamped calibrated_pose;
       calibrated_pose.header.frame_id = params.base_link;
-      calibrated_pose.child_frame_id = free_frame;
+      calibrated_pose.child_frame_id = free_frame.name;
       tf2::toMsg(estimated_pose_tf, calibrated_pose.transform);
 
       result->calibrated_poses.push_back(calibrated_pose);
