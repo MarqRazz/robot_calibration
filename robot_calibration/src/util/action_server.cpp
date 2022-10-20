@@ -124,7 +124,7 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
     if (goal->estimated_poses.size() > 0) {
       for (unsigned i=0; i < params.free_frames.size(); i++) {
         for (const auto& estimated_pose : goal->estimated_poses) {
-          if (estimated_pose.child_frame_id == params.free_params.at(i)) {
+          if (estimated_pose.child_frame_id == params.free_frames.at(i).name) {
             params.free_frames_initial_values.at(i).x = estimated_pose.transform.translation.x;
             params.free_frames_initial_values.at(i).y = estimated_pose.transform.translation.y;
             params.free_frames_initial_values.at(i).z = estimated_pose.transform.translation.z;
@@ -192,7 +192,7 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
       estimated_offset.transform.translation.z = opt.getOffsets()->get(free_frame + "_z");
 
       KDL::Rotation r;
-      r = robot_calibration::rotation_from_axis_magnitude(opt.getOffsets()->get(free_frame + "_a"), opt.getOffsets()->get(free_frame + "_b"), opt.getOffsets()->get(free_frame + "_c"));
+      r = robot_calibration::rotation_from_axis_magnitude(opt.getOffsets()->get(free_frame.name + "_a"), opt.getOffsets()->get(free_frame.name + "_b"), opt.getOffsets()->get(free_frame.name + "_c"));
       double x, y, z, w;
       r.GetQuaternion(x, y, z, w);
       estimated_offset.transform.rotation.x = x;
