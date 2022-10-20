@@ -155,7 +155,7 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
       }
 
       for (unsigned i=0; i < params.free_frames.size(); i++) {
-        if (params.free_params.at(i) == "scene_camera_mount_joint") {
+        if (params.free_frames.at(i).name == "scene_camera_mount_joint") {
             params.free_frames_initial_values.at(i).x = initial_estimate.transform.translation.x;
             params.free_frames_initial_values.at(i).y = initial_estimate.transform.translation.y;
             params.free_frames_initial_values.at(i).z = initial_estimate.transform.translation.z;
@@ -183,13 +183,13 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
     // Send result
     auto result = std::make_shared<CalibratePose::Result>();
 
-    for (const auto& free_frame : params.free_params) {
+    for (const auto& free_frame : params.free_frames) {
       geometry_msgs::msg::TransformStamped estimated_offset;
-      estimated_offset.header.frame_id = free_frame;
+      estimated_offset.header.frame_id = free_frame.name;
       estimated_offset.child_frame_id = "estimated_pose_offset";
-      estimated_offset.transform.translation.x = opt.getOffsets()->get(free_frame + "_x");
-      estimated_offset.transform.translation.y = opt.getOffsets()->get(free_frame + "_y");
-      estimated_offset.transform.translation.z = opt.getOffsets()->get(free_frame + "_z");
+      estimated_offset.transform.translation.x = opt.getOffsets()->get(free_frame.name + "_x");
+      estimated_offset.transform.translation.y = opt.getOffsets()->get(free_frame.name + "_y");
+      estimated_offset.transform.translation.z = opt.getOffsets()->get(free_frame.name + "_z");
 
       KDL::Rotation r;
       r = robot_calibration::rotation_from_axis_magnitude(opt.getOffsets()->get(free_frame.name + "_a"), opt.getOffsets()->get(free_frame.name + "_b"), opt.getOffsets()->get(free_frame.name + "_c"));
