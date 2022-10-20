@@ -145,25 +145,25 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
       }
     }
 
+    geometry_msgs::msg::TransformStamped initial_estimate;
     if (goal->lookup_initial_estimate) {
-      geometry_msgs::msg::TransformStamped t;
       try {
         RCLCPP_INFO(logger, "Looking up transform from base_link to scene_camera_mount_link");
-        t = tf_buffer_->lookupTransform("scene_camera_mount_link", "base_link", tf2::TimePointZero);
+        initial_estimate = tf_buffer_->lookupTransform("scene_camera_mount_link", "base_link", tf2::TimePointZero);
       } catch (const tf2::TransformException & ex) {
         RCLCPP_INFO(logger, "Could not transform scene_camera_mount_link to base_link : %s", ex.what());
       }
 
       for (unsigned i=0; i < params.free_frames.size(); i++) {
         if (params.free_params.at(i) == "scene_camera_mount_joint") {
-            params.free_frames_initial_values.at(i).x = t.transform.translation.x;
-            params.free_frames_initial_values.at(i).y = t.transform.translation.y;
-            params.free_frames_initial_values.at(i).z = t.transform.translation.z;
+            params.free_frames_initial_values.at(i).x = initial_estimate.transform.translation.x;
+            params.free_frames_initial_values.at(i).y = initial_estimate.transform.translation.y;
+            params.free_frames_initial_values.at(i).z = initial_estimate.transform.translation.z;
 
-            tf2::Quaternion q(t.transform.rotation.x,
-                              t.transform.rotation.y,
-                              t.transform.rotation.z,
-                              t.transform.rotation.w);
+            tf2::Quaternion q(initial_estimate.transform.rotation.x,
+                              initial_estimate.transform.rotation.y,
+                              initial_estimate.transform.rotation.z,
+                              initial_estimate.transform.rotation.w);
             tf2::Matrix3x3 m(q);
             double roll, pitch, yaw;
             m.getRPY(roll, pitch, yaw);
@@ -184,22 +184,34 @@ void CalibratePoseServer::execute(const std::shared_ptr<GoalHandleCalibratePose>
     auto result = std::make_shared<CalibratePose::Result>();
 
     for (const auto& free_frame : params.free_params) {
-      geometry_msgs::msg::TransformStamped estimated_pose;
-      estimated_pose.child_frame_id = free_frame;
-      estimated_pose.transform.translation.x = opt.getOffsets()->get(free_frame + "_x");
-      estimated_pose.transform.translation.y = opt.getOffsets()->get(free_frame + "_y");
-      estimated_pose.transform.translation.z = opt.getOffsets()->get(free_frame + "_z");
+      geometry_msgs::msg::TransformStamped estimated_offset;
+      estimated_offset.header.frame_id = free_frame;
+      estimated_offset.child_frame_id = "estimated_pose_offset";
+      estimated_offset.transform.translation.x = opt.getOffsets()->get(free_frame + "_x");
+      estimated_offset.transform.translation.y = opt.getOffsets()->get(free_frame + "_y");
+      estimated_offset.transform.translation.z = opt.getOffsets()->get(free_frame + "_z");
 
       KDL::Rotation r;
       r = robot_calibration::rotation_from_axis_magnitude(opt.getOffsets()->get(free_frame + "_a"), opt.getOffsets()->get(free_frame + "_b"), opt.getOffsets()->get(free_frame + "_c"));
       double x, y, z, w;
       r.GetQuaternion(x, y, z, w);
-      estimated_pose.transform.rotation.x = x;
-      estimated_pose.transform.rotation.y = y;
-      estimated_pose.transform.rotation.z = z;
-      estimated_pose.transform.rotation.w = w;
+      estimated_offset.transform.rotation.x = x;
+      estimated_offset.transform.rotation.y = y;
+      estimated_offset.transform.rotation.z = z;
+      estimated_offset.transform.rotation.w = w;
 
-      result->calibrated_poses.push_back(estimated_pose);
+      // create transform objects that we can used to calculated the calibrated_pose from the offset
+      tf2::Transform initial_estimate_tf, estimated_pose_tf;
+      tf2::fromMsg(initial_estimate.transform, initial_estimate_tf);
+      tf2::fromMsg(estimated_offset.transform, estimated_pose_tf);
+      // calculate the final estimated pose by adding in the offset
+      estimated_pose_tf = initial_estimate_tf * estimated_pose_tf;
+      geometry_msgs::msg::TransformStamped calibrated_pose;
+      calibrated_pose.header.frame_id = params.base_link;
+      calibrated_pose.child_frame_id = free_frame;
+      tf2::toMsg(estimated_pose_tf, calibrated_pose.transform);
+
+      result->calibrated_poses.push_back(calibrated_pose);
     }
     RCLCPP_INFO(logger, "Goal succeeded. Send the result");
     goal_handle->succeed(result);
