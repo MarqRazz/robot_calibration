@@ -61,6 +61,8 @@ bool getPosesFromYaml(const std::string& filename,
         for (auto feature = it->second.begin(); feature != it->second.end(); ++feature)
         {
           msg.features.push_back(feature->as<std::string>());
+          // TODO(marqrazz) could be helpful to share a msg here.
+	  // RCLCPP_INFO(LOGGER, "Adding feature %s", msg.features.back().c_str());
         }
       }
     }

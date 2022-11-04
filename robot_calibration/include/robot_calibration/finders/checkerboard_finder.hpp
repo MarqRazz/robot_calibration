@@ -26,6 +26,9 @@
 #include <robot_calibration/util/depth_camera_info.hpp>
 #include <robot_calibration_msgs/msg/calibration_data.hpp>
 
+// this is needed to transform the camera measurments into the calibration frame
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+
 #include <opencv2/calib3d/calib3d.hpp>
 #include <cv_bridge/cv_bridge.h>
 

@@ -90,7 +90,12 @@ public:
       {
         features[name] = finder;
       }
+      // TODO(marqrazz) Error if you fail to load the plugin!
+      //else
+        // RCLCPP_INFO(logger, "  No Features");
     }
+
+    // RCLCPP_ERROR(logger, "  Features: %i", features.size());
 
     return true;
   }

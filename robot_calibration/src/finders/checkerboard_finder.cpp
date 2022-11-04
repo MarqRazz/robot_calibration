@@ -127,7 +127,9 @@ bool CheckerboardFinder::waitForCloud()
 bool CheckerboardFinder::find(robot_calibration_msgs::msg::CalibrationData * msg)
 {
   // Try up to 50 frames
-  for (int i = 0; i < 50; ++i)
+  // TODO(marqrazz) how should we generalize this? This should support warning when a pose is
+  // not obserable and not force the process to take forever failing!
+  for (int i = 0; i < 2; ++i)
   {
     // temporary copy of msg, so we throw away all changes if findInternal() returns false
     robot_calibration_msgs::msg::CalibrationData tmp_msg(*msg);
@@ -211,7 +213,7 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
     cloud.width = 0;
     cloud.height = 0;
     cloud.header.stamp = clock_->now();
-    cloud.header.frame_id = cloud_.header.frame_id;
+    cloud.header.frame_id = "scene_camera_mount_link"; // cloud_.header.frame_id;
     sensor_msgs::PointCloud2Modifier cloud_mod(cloud);
     cloud_mod.setPointCloud2FieldsByString(1, "xyz");
     cloud_mod.resize(points_x_ * points_y_);
@@ -227,7 +229,17 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
     msg->observations[idx_cam].features.resize(points_x_ * points_y_);
     msg->observations[idx_chain].features.resize(points_x_ * points_y_);
 
+    // Check that transform is possible. Fail without transforming if not possible.
+    if (!tf2_buffer_->canTransform("scene_camera_mount_link", cloud_.header.frame_id, cloud_.header.stamp))
+    {
+      RCLCPP_ERROR(LOGGER, "Failed to lookup Camera Sensor frame: %s to imitate", cloud_.header.frame_id.c_str());
+    }
+    // Transform is confirmed possible, get the transform and transform the point cloud.
+    auto calibration_to_sensor_tf =
+        tf2_buffer_->lookupTransform("scene_camera_mount_link", cloud_.header.frame_id, cloud_.header.stamp);    
+
     // Fill in the headers
+    cloud_.header.frame_id = "scene_camera_mount_link"; // we transform the measured data on the fly to the calibration_frame
     rgbd.header = cloud_.header;
     world.header.frame_id = frame_id_;
 
@@ -253,6 +265,8 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
         RCLCPP_ERROR_STREAM(LOGGER, "NAN point on " << i);
         return false;
       }
+
+      tf2::doTransform(rgbd.point, rgbd.point, calibration_to_sensor_tf);
 
       msg->observations[idx_cam].features[i] = rgbd;
       msg->observations[idx_cam].ext_camera_info = depth_camera_manager_.getDepthCameraInfo();
@@ -281,7 +295,7 @@ bool CheckerboardFinder::findInternal(robot_calibration_msgs::msg::CalibrationDa
   cv::Size observed_size;
   if(cv::checkChessboard(bridge->image, observed_size))
     RCLCPP_ERROR(LOGGER, "The checkerboard found does not match the values given in capture.yaml.\n \
-     Found checkerboard with: %d points_x, %d points_y.");
+     Found checkerboard with: d points_x, d points_y.");
   else
     RCLCPP_ERROR(LOGGER, "Could not find the checkerboard!");
   return false;

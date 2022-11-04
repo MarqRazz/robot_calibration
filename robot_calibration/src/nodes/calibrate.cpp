@@ -210,7 +210,7 @@ int main(int argc, char** argv)
   for (auto step : calibration_steps)
   {
     params.LoadFromROS(node, step);
-    opt.optimize(params, data, logger, verbose);
+    opt.optimize(params, data, logger, node, verbose);
     if (verbose)
     {
       std::cout << "Parameter Offsets:" << std::endl;

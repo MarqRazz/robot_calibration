@@ -57,6 +57,7 @@ public:
   int optimize(OptimizationParams& params,
                std::vector<robot_calibration_msgs::msg::CalibrationData> data,
                rclcpp::Logger& logger,
+               rclcpp::Node::SharedPtr node,
                bool progress_to_stdout = false);
 
   /**

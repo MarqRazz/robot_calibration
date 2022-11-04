@@ -21,6 +21,9 @@
 #ifndef ROBOT_CALIBRATION_COST_FUNCTIONS_CHAIN3D_TO_CHAIN3D_ERROR_HPP
 #define ROBOT_CALIBRATION_COST_FUNCTIONS_CHAIN3D_TO_CHAIN3D_ERROR_HPP
 
+#include <rclcpp/node.hpp>
+#include <rclcpp/rclcpp.hpp>
+
 #include <string>
 #include <ceres/ceres.h>
 #include <robot_calibration/optimization/offsets.hpp>
@@ -28,6 +31,7 @@
 #include <robot_calibration/models/camera3d.hpp>
 #include <robot_calibration/models/chain3d.hpp>
 #include <robot_calibration_msgs/msg/calibration_data.hpp>
+#include "visualization_msgs/msg/marker_array.hpp"
 
 namespace robot_calibration
 {
@@ -49,12 +53,15 @@ struct Chain3dToChain3d
   Chain3dToChain3d(Chain3dModel* a_model,
                    Chain3dModel* b_model,
                    OptimizationOffsets* offsets,
-                   robot_calibration_msgs::msg::CalibrationData& data)
+                   robot_calibration_msgs::msg::CalibrationData& data,
+                   rclcpp::Node::SharedPtr node)
   {
     a_model_ = a_model;
     b_model_ = b_model;
     offsets_ = offsets;
     data_ = data;
+    pub_ = node->create_publisher<visualization_msgs::msg::MarkerArray>("/cal", rclcpp::SensorDataQoS().reliable());
+    clock_ = node->get_clock();
   }
 
   virtual ~Chain3dToChain3d() {}
@@ -76,6 +83,37 @@ struct Chain3dToChain3d
     std::vector<geometry_msgs::msg::PointStamped> b_pts =
         b_model_->project(data_, *offsets_);
 
+    visualization_msgs::msg::MarkerArray projected_points;
+    visualization_msgs::msg::Marker obs_a;
+    obs_a.header.frame_id = a_pts[0].header.frame_id;
+    obs_a.header.stamp = clock_->now();
+    obs_a.action = obs_a.ADD;
+    obs_a.type = obs_a.POINTS;
+    obs_a.scale.x = 0.005;
+    obs_a.scale.y = 0.005;
+    obs_a.scale.z = 0.005;
+    obs_a.ns = a_model_->getName();
+    obs_a.id = 100;
+    std_msgs::msg::ColorRGBA a_color;
+    a_color.r = 1.0;
+    a_color.a = 0.5;
+    obs_a.color = a_color;
+    
+    visualization_msgs::msg::Marker obs_b;
+    obs_b.header.frame_id = b_pts[0].header.frame_id;
+    obs_b.header.stamp = clock_->now();
+    obs_b.action = obs_b.ADD;
+    obs_b.type = obs_b.POINTS;
+    obs_b.scale.x = 0.005;
+    obs_b.scale.y = 0.005;
+    obs_b.scale.z = 0.005;
+    obs_b.ns = b_model_->getName();
+    obs_b.id = 200;
+    std_msgs::msg::ColorRGBA b_color;
+    b_color.g = 1.0;
+    b_color.a = 0.5;
+    obs_b.color = b_color;
+
     if (a_pts.size() != b_pts.size())
     {
       std::cerr << "Observations do not match in size." << std::endl;
@@ -85,12 +123,21 @@ struct Chain3dToChain3d
     // Compute residuals
     for (size_t i = 0; i < a_pts.size(); ++i)
     {
+      obs_a.points.push_back(a_pts[i].point);
+      obs_a.colors.push_back(a_color);
+      obs_b.points.push_back(b_pts[i].point);
+      obs_b.colors.push_back(b_color);
       if (a_pts[i].header.frame_id != b_pts[i].header.frame_id)
         std::cerr << "Projected observation frame_ids do not match." << std::endl;
       residuals[(3*i)+0] = a_pts[i].point.x - b_pts[i].point.x;
       residuals[(3*i)+1] = a_pts[i].point.y - b_pts[i].point.y;
       residuals[(3*i)+2] = a_pts[i].point.z - b_pts[i].point.z;
     }
+    projected_points.markers.push_back(obs_a);
+    projected_points.markers.push_back(obs_b);
+    pub_->publish(projected_points);
+
+    // rclcpp::sleep_for(std::chrono::seconds(5));
 
     return true;  // always return true
   }
@@ -102,7 +149,8 @@ struct Chain3dToChain3d
   static ceres::CostFunction* Create(Chain3dModel* a_model,
                                      Chain3dModel* b_model,
                                      OptimizationOffsets* offsets,
-                                     robot_calibration_msgs::msg::CalibrationData& data)
+                                     robot_calibration_msgs::msg::CalibrationData& data,
+                                     rclcpp::Node::SharedPtr node)
   {
     int index = getSensorIndex(data, a_model->getName());
     if (index == -1)
@@ -114,7 +162,7 @@ struct Chain3dToChain3d
 
     ceres::DynamicNumericDiffCostFunction<Chain3dToChain3d> * func;
     func = new ceres::DynamicNumericDiffCostFunction<Chain3dToChain3d>(
-                    new Chain3dToChain3d(a_model, b_model, offsets, data));
+                    new Chain3dToChain3d(a_model, b_model, offsets, data, node));
     func->AddParameterBlock(offsets->size());
     func->SetNumResiduals(data.observations[index].features.size() * 3);
 
@@ -125,6 +173,8 @@ struct Chain3dToChain3d
   Chain3dModel * b_model_;
   OptimizationOffsets * offsets_;
   robot_calibration_msgs::msg::CalibrationData data_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr pub_;
+  rclcpp::Clock::SharedPtr clock_;
 };
 
 }  // namespace robot_calibration

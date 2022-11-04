@@ -70,6 +70,8 @@ bool CaptureManager::moveToState(const sensor_msgs::msg::JointState& state)
 bool CaptureManager::captureFeatures(const std::vector<std::string>& feature_names,
                                      robot_calibration_msgs::msg::CalibrationData& msg)
 {
+  // TODO(marqrazz) print error or fail if there are zero finders_ loaded!
+  RCLCPP_INFO(LOGGER, "Capturing features from %li sources", finders_.size());
   for (auto it = finders_.begin(); it != finders_.end(); ++it)
   {
     if (feature_names.empty() ||

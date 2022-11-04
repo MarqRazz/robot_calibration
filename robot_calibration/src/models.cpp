@@ -231,6 +231,9 @@ std::vector<geometry_msgs::msg::PointStamped> Camera3dModel::project(
   // Get position of camera frame
   KDL::Frame fk = getChainFK(offsets, data.joint_states);
 
+  // (marqrazz): this is useful to see how the joint is moving as the calibration runs
+  // std::cout << "FK data_: " << fk.p.x() << ", " << fk.p.y() << ", " << fk.p.z() << std::endl;
+
   for (size_t i = 0; i < points.size(); ++i)
   {
     // TODO: warn if frame_id != tip?

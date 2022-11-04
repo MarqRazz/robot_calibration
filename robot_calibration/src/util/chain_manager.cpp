@@ -46,6 +46,8 @@ ChainManager::ChainManager(rclcpp::Node::SharedPtr node, long int wait_time) :
     std::string topic, group;
     topic = node->declare_parameter<std::string>(name + ".topic", std::string());
     group = node->declare_parameter<std::string>(name + ".planning_group", std::string());
+    // Parameter to set movement time
+    duration_ = node->declare_parameter<double>(name + ".duration", 5.0);
 
     RCLCPP_INFO(LOGGER, "Creating chain %s on topic %s", name.c_str(), topic.c_str());
     
@@ -70,9 +72,6 @@ ChainManager::ChainManager(rclcpp::Node::SharedPtr node, long int wait_time) :
 
     controllers_.push_back(controller);
   }
-
-  // Parameter to set movement time
-  duration_ = node->declare_parameter<double>("duration", 5.0);
 
   // Parameter to set velocity scaling factor for move_group
   velocity_factor_ = node->declare_parameter<double>("velocity_factor", 1.0);

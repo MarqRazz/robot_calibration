@@ -64,6 +64,7 @@ Optimizer::~Optimizer()
 int Optimizer::optimize(OptimizationParams& params,
                         std::vector<robot_calibration_msgs::msg::CalibrationData> data,
                         rclcpp::Logger& logger,
+                        rclcpp::Node::SharedPtr node,
                         bool progress_to_stdout)
 {
   // Load KDL from URDF
@@ -173,7 +174,8 @@ int Optimizer::optimize(OptimizationParams& params,
         ceres::CostFunction * cost = Chain3dToChain3d::Create(models_[a_name],
                                                               models_[b_name],
                                                               offsets_.get(),
-                                                              data[i]);
+                                                              data[i],
+                                                              node);
 
         // Output initial error
         if (progress_to_stdout)
